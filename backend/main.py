@@ -6,12 +6,7 @@ import pandas as pd
 import numpy as np
 import folium
 import branca.colormap as bcm
-import matplotlib
-matplotlib.use('Agg') # important for server contexts to avoid threading issues
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from branca.element import Template, MacroElement
-import seaborn as sns
 import re
 import math
 import os
@@ -202,19 +197,7 @@ async def analyze_data(
         export_df.columns = ['DMI_Feet', 'Latitude', 'Longitude', 'Thickness_Inches']
         export_df.to_excel(excel_path, index=False)
         
-        # 4.7 Distribution Plot
-        dist_plot_path = os.path.join(session_dir, 'distribution.png')
-        plt.figure(figsize=(10, 6), facecolor='#f8f9fa')
-        sns.histplot(thickness_vals, kde=True, color='forestgreen', bins=20)
-        plt.title(f'Thickness Distribution - {title}', fontsize=14, fontweight='bold', pad=15)
-        plt.xlabel('Thickness (inches)', fontsize=12)
-        plt.ylabel('Frequency', fontsize=12)
-        plt.grid(True, linestyle='--', alpha=0.6)
-        plt.tight_layout()
-        plt.savefig(dist_plot_path, dpi=300)
-        plt.close()
-        
-        # 4.8 Prepare Frontend Plot Data (JSON)
+        # 4.7 Prepare Frontend Plot Data (JSON)
         # Downsample profile for frontend performance (target ~2000 points)
         step = max(1, len(plot_df) // 2000)
         profile_json = []
@@ -235,53 +218,10 @@ async def analyze_data(
                 "y": int(counts[i])
             })
         
-        # 5. Chart rendering
-        plot_df_chart = df[[1, thickness_column]].sort_values(by=1)
-        gap_mask = plot_df_chart[1].diff() > 100
-        if gap_mask.any():
-            gap_indices = plot_df_chart.index[gap_mask]
-            nan_rows = pd.DataFrame(index=gap_indices - 0.5, columns=plot_df_chart.columns)
-            plot_df_chart = pd.concat([plot_df_chart, nan_rows]).sort_index()
-            plot_df_chart = plot_df_chart.sort_values(by=1)
-            
-        # Using a default font to avoid 'Verdana' missing on different OS
-        fig, ax = plt.subplots(figsize=(10, 4.89), facecolor='#e6e6e6')
-        ax.set_facecolor('#e6e6e6')
-        if not plot_df_chart.empty:
-            ax.plot(plot_df_chart[1], plot_df_chart[thickness_column], '-', linewidth=1.5, alpha=0.9, color='forestgreen', label='HMA Thickness', zorder=2)
-            
-        for spine in ax.spines.values():
-            spine.set_visible(True)
-            spine.set_color('#333333')
-            spine.set_linewidth(1.2)
-            
-        ax.tick_params(direction='in', length=5, width=1.0, colors='#111111', pad=8, labelsize=9)
-        ax.set_title(f'{title} Profile', fontsize=14, fontweight='bold', color='#111111', pad=15)
-        
-        def format_ft_to_mi_ft(x, pos):
-            mi = int(x // 5280)
-            ft = int(x % 5280)
-            return f'{mi} mi {ft} ft' if mi > 0 else f'{ft} ft'
-            
-        ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_ft_to_mi_ft))
-        plt.xticks(rotation=45)
-        ax.set_xlabel('DMI (Miles and Feet)', fontsize=11, fontweight='bold', color='#333333', labelpad=10)
-        ax.set_ylabel('Thickness (inches)', fontsize=11, fontweight='bold', color='#333333', labelpad=10)
-        ax.set_ylim(1, 8)
-        ax.legend(loc='upper right', fontsize=10, frameon=True, facecolor='white', edgecolor='#333333')
-        ax.grid(True, linestyle='--', color='#cccccc', alpha=0.8, zorder=0)
-        plt.tight_layout()
-        
-        chart_path = os.path.join(session_dir, 'chart.png')
-        plt.savefig(chart_path, dpi=300)
-        plt.close(fig)
-        
         return {
             "status": "success",
             "session_id": session_id,
             "map_url": f"/results/{session_id}/map.html",
-            "chart_url": f"/results/{session_id}/chart.png",
-            "dist_plot_url": f"/results/{session_id}/distribution.png",
             "excel_url": f"/results/{session_id}/analysis_results.xlsx",
             "chart_data": {
                 "profile": profile_json,

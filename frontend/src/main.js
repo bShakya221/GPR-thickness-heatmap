@@ -40,10 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportContainer = document.getElementById('export-container');
     const resultDist = document.getElementById('result-dist');
 
-    const downloadProfile = document.getElementById('download-profile');
     const downloadMap = document.getElementById('download-map');
-    const downloadDist = document.getElementById('download-dist');
     const downloadExcel = document.getElementById('download-excel');
+
+    // Chart instances
+    let profileChart = null;
+    let distChart = null;
 
     // Parameter Inputs
     const offsetInput = document.getElementById('antenna_offset');
@@ -51,10 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Latency Display
     const latencyDisplay = document.getElementById('latency');
-
-    // Chart instances
-    let profileChart = null;
-    let distChart = null;
 
     // Layer selection elements
     const layerSelection = document.getElementById('layer-selection');
@@ -68,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initParamSync();
     startLatencySimulation();
     initCoordinateTracking();
-    initCharts();
 
     // File Upload Handling
     kmlInput.addEventListener('change', (e) => handleFileSelect(e, kmlZone, kmlFilename, 'KML'));
@@ -157,56 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    function initCharts() {
-        const commonOptions = {
-            theme: { mode: 'dark' },
-            chart: {
-                foreColor: '#a1a1aa',
-                toolbar: { show: true, tools: { download: false } },
-                background: 'transparent',
-                fontFamily: 'JetBrains Mono, monospace'
-            },
-            grid: {
-                borderColor: '#27272a',
-                strokeDashArray: 4
-            },
-            colors: ['#f59e0b', '#3b82f6'],
-            stroke: { curve: 'smooth', width: 2 }
-        };
 
-        profileChart = new ApexCharts(document.querySelector("#profile-chart"), {
-            ...commonOptions,
-            series: [{ name: 'Thickness', data: [] }],
-            chart: { ...commonOptions.chart, type: 'area', height: 400,
-                events: {
-                    mouseMove: (event, chartContext, config) => {
-                        const seriesIndex = config.seriesIndex;
-                        const dataPointIndex = config.dataPointIndex;
-                        if (dataPointIndex > -1) {
-                            const point = config.config.series[0].data[dataPointIndex];
-                            if (point && point.lat) {
-                                document.getElementById('lat-display').textContent = point.lat.toFixed(6);
-                                document.getElementById('lon-display').textContent = point.lon.toFixed(6);
-                            }
-                        }
-                    }
-                }
-            },
-            xaxis: { type: 'numeric', title: { text: 'Distance (Feet)' } },
-            yaxis: { title: { text: 'Inches' }, min: 0 }
-        });
-
-        distChart = new ApexCharts(document.querySelector("#dist-chart"), {
-            ...commonOptions,
-            series: [{ name: 'Frequency', data: [] }],
-            chart: { ...commonOptions.chart, type: 'bar', height: 400 },
-            xaxis: { type: 'numeric', title: { text: 'Thickness (Inches)' } },
-            yaxis: { title: { text: 'Count' } }
-        });
-
-        profileChart.render();
-        distChart.render();
-    }
 
     // Handle File Selection
     function handleFileSelect(e, zone, filenameDisplay, type) {
@@ -335,8 +283,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Store latest data globally for charts
+    let currentChartData = null;
+
     // Populate Results Data
     function populateResults(data) {
+        currentChartData = data.chart_data; // Store for showResults
+
         // Traces
         const traces = data.data_summary.traces_parsed;
         sumTraces.textContent = traces.toLocaleString();
@@ -368,28 +321,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const cacheBuster = `?t=${Date.now()}`;
         resultMap.src = data.map_url + cacheBuster;
         
-        // Update Interactive Charts
-        profileChart.updateSeries([{
-            name: 'Thickness',
-            data: data.chart_data.profile.map(p => ({ x: p.x, y: p.y, lat: p.lat, lon: p.lon }))
-        }]);
-
-        distChart.updateSeries([{
-            name: 'Frequency',
-            data: data.chart_data.distribution.map(p => ({ x: p.x, y: p.y }))
-        }]);
-
-        // resultChart.src = data.chart_url + cacheBuster; // Static version hidden
-        // resultDist.src = data.dist_plot_url + cacheBuster; // Static version hidden
-
         // Set Statistics
         statsMean.textContent = data.data_summary.stats.mean;
         statsStd.textContent = data.data_summary.stats.std;
 
         // Set Download Links
-        downloadProfile.href = data.chart_url;
         downloadMap.href = data.map_url;
-        downloadDist.href = data.dist_plot_url;
         downloadExcel.href = data.excel_url;
 
         // Animate value counters
@@ -402,6 +339,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function showResults() {
         resultsSection.classList.remove('hidden');
 
+        const commonOptions = {
+            theme: { mode: 'dark' },
+            chart: {
+                foreColor: '#a1a1aa',
+                toolbar: { show: true, tools: { download: true, selection: true, zoom: true, pan: true } },
+                background: 'transparent',
+                fontFamily: 'JetBrains Mono, monospace',
+                animations: { enabled: false }
+            },
+            grid: { borderColor: '#27272a', strokeDashArray: 4 },
+            colors: ['#f59e0b', '#3b82f6'],
+            stroke: { curve: 'smooth', width: 2 }
+        };
+
         // Staggered reveal
         setTimeout(() => {
             summaryCards.classList.remove('hidden');
@@ -411,6 +362,34 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             chartContainer.classList.remove('hidden');
             chartContainer.style.animation = 'slide-up 0.5s ease-out 0.1s both';
+            
+            // Re-mount profile chart totally fresh
+            if(currentChartData) {
+                if(profileChart) profileChart.destroy();
+                
+                // Store coords to retrieve quickly on hover
+                window.coordMap = currentChartData.profile;
+
+                profileChart = new ApexCharts(document.querySelector("#profile-chart"), {
+                    ...commonOptions,
+                    series: [{ name: 'Thickness', data: currentChartData.profile.map(p => ([p.x, p.y])) }],
+                    chart: { ...commonOptions.chart, type: 'area', height: 350,
+                        events: {
+                            mouseMove: (event, chartContext, config) => {
+                                const idx = config.dataPointIndex;
+                                if (idx > -1 && window.coordMap[idx] && window.coordMap[idx].lat) {
+                                    document.getElementById('lat-display').textContent = window.coordMap[idx].lat.toFixed(6);
+                                    document.getElementById('lon-display').textContent = window.coordMap[idx].lon.toFixed(6);
+                                }
+                            }
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    xaxis: { type: 'numeric', title: { text: 'Distance (Feet)' }, tickAmount: 10, decimalsInFloat: 0 },
+                    yaxis: { title: { text: 'Inches' }, min: 0 }
+                });
+                profileChart.render();
+            }
         }, 300);
 
         setTimeout(() => {
@@ -421,6 +400,23 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             distContainer.classList.remove('hidden');
             distContainer.style.animation = 'slide-up 0.5s ease-out 0.3s both';
+            
+            // Re-mount distribution chart totally fresh
+            if(currentChartData) {
+                if(distChart) distChart.destroy();
+
+                distChart = new ApexCharts(document.querySelector("#dist-chart"), {
+                    ...commonOptions,
+                    colors: ['#22c55e'], // Signal green
+                    series: [{ name: 'Frequency', data: currentChartData.distribution.map(p => ({ x: String(p.x), y: p.y })) }],
+                    chart: { ...commonOptions.chart, type: 'bar', height: 350 },
+                    dataLabels: { enabled: false },
+                    xaxis: { type: 'category', title: { text: 'Thickness (Inches)' }, tickAmount: 10 },
+                    yaxis: { title: { text: 'Count' } },
+                    plotOptions: { bar: { borderRadius: 4, columnWidth: '80%' } }
+                });
+                distChart.render();
+            }
         }, 600);
 
         setTimeout(() => {

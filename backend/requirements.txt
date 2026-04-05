@@ -3,7 +3,6 @@ uvicorn
 python-multipart
 pandas
 folium
-matplotlib
-seaborn
 branca
 openpyxl
+
