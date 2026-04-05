@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GPR Web Tool</title>
+    <!-- Modern Typeface -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-background text-text min-h-screen font-[Inter]">
+    
+    <div id="app" class="max-w-7xl mx-auto px-4 py-8 w-full flex flex-col gap-8">
+      
+      <!-- Header -->
+      <header class="flex flex-col gap-2 items-center text-center animate-fade-in w-full">
+        <h1 class="text-4xl md:text-5xl font-bold font-[Outfit] bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+          Nexus GPR Intelligence
+        </h1>
+        <p class="text-textSecondary text-lg max-w-2xl">
+          Automated analysis of Ground Penetrating Radar pavement data. Upload your telemetry and KML coordinates to instantly generate interactive mapping and distribution profiles.
+        </p>
+      </header>
+
+      <!-- Main Input Section -->
+      <main class="grid md:grid-cols-12 gap-8 w-full">
+        
+        <!-- Upload Form Panel -->
+        <div class="md:col-span-4 glass-panel rounded-2xl p-6 shadow-2xl animate-fade-in flex flex-col gap-6 h-fit" style="animation-delay: 0.1s;">
+          <h2 class="text-xl font-semibold border-b border-white/10 pb-3 font-[Outfit] text-emerald-300">Analysis Configuration</h2>
+          
+          <form id="upload-form" class="flex flex-col gap-5">
+            
+            <!-- KML Upload -->
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-textSecondary uppercase tracking-wider">Route Payload (.KML)</label>
+              <div class="relative group">
+                <input type="file" id="kml_file" name="kml_file" required accept=".kml"
+                  class="block w-full text-sm text-textSecondary
+                  file:mr-4 file:py-2.5 file:px-4
+                  file:rounded-xl file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-500/10 file:text-blue-400
+                  hover:file:bg-blue-500/20 file:transition-colors cursor-pointer
+                  border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <!-- GPR Upload -->
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-textSecondary uppercase tracking-wider">Thickness Matrix (.OUT)</label>
+              <input type="file" id="gpr_file" name="gpr_file" required accept=".out"
+                  class="block w-full text-sm text-textSecondary
+                  file:mr-4 file:py-2.5 file:px-4
+                  file:rounded-xl file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-emerald-500/10 file:text-emerald-400
+                  hover:file:bg-emerald-500/20 file:transition-colors cursor-pointer
+                  border border-white/10 rounded-xl bg-black/20 focus:outline-none focus:border-emerald-500"
+                />
+            </div>
+
+            <!-- Antenna Offset -->
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between">
+                <label for="antenna_offset" class="text-sm font-medium text-textSecondary uppercase tracking-wider">Antenna Offset (Feet)</label>
+                <span id="offset_val" class="font-mono text-emerald-400 font-bold">0.0 ft</span>
+              </div>
+              <input type="range" id="antenna_offset" name="antenna_offset" min="-100" max="100" step="0.5" value="0" 
+                class="w-full accent-emerald-500 cursor-grab"
+                oninput="document.getElementById('offset_val').innerText = this.value + ' ft';"
+              >
+              <p class="text-xs text-textSecondary/60 mt-1">Relative physical calibration delay between GPS and GPR sensor arrays.</p>
+            </div>
+
+            <!-- Title Prefix -->
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium text-textSecondary uppercase tracking-wider">Analysis Identifier</label>
+              <input type="text" id="title" name="title" value="HMA Thickness" 
+                class="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              />
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submit-btn" class="mt-4 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all active:scale-95 flex justify-center items-center gap-2">
+              <span id="btn-text">Execute Analysis Sequence</span>
+              <svg id="btn-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </button>
+            <div id="error-message" class="text-red-400 text-sm hidden font-medium text-center bg-red-400/10 py-2 rounded-lg border border-red-400/20"></div>
+
+          </form>
+        </div>
+
+        <!-- Dashboard Visualization Panel -->
+        <div class="md:col-span-8 flex flex-col gap-6">
+          
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 gap-4 animate-fade-in hidden" id="summary-cards" style="animation-delay: 0.2s;">
+            <div class="glass-panel rounded-2xl p-5 border-l-4 border-l-blue-500 flex flex-col justify-center">
+              <h3 class="text-textSecondary text-xs uppercase tracking-wider font-semibold">Total Traces Interpolated</h3>
+              <p class="text-3xl font-[Outfit] font-bold text-white mt-1" id="sum-traces">---</p>
+            </div>
+            <div class="glass-panel rounded-2xl p-5 border-l-4 border-l-emerald-500 flex flex-col justify-center">
+              <h3 class="text-textSecondary text-xs uppercase tracking-wider font-semibold">Correlated Geographic Range</h3>
+              <p class="text-3xl font-[Outfit] font-bold text-white mt-1" id="sum-dist">---</p>
+            </div>
+          </div>
+
+          <!-- Line Chart -->
+          <div class="glass-panel rounded-2xl p-6 shadow-xl animate-fade-in hidden flex-col gap-4" id="chart-container" style="animation-delay: 0.3s;">
+            <h2 class="text-lg font-[Outfit] font-semibold flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-400"></span> Longitudinal Distribution Profile
+            </h2>
+            <div class="bg-black/30 rounded-xl overflow-hidden border border-white/5 relative aspect-[21/9] flex items-center justify-center">
+                <img id="result-chart" src="" class="w-full h-full object-contain" alt="HMA Thickness Chart" />
+            </div>
+          </div>
+
+          <!-- Map Container -->
+          <div class="glass-panel rounded-2xl p-6 shadow-xl animate-fade-in hidden flex-col gap-4" id="map-container" style="animation-delay: 0.4s;">
+            <h2 class="text-lg font-[Outfit] font-semibold flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Geospatial Telemetry
+            </h2>
+            <div class="w-full rounded-xl overflow-hidden shadow-inner border border-white/10 relative h-[600px] bg-white">
+              <iframe id="result-map" src="" class="w-full h-full border-0"></iframe>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+    </div>
+
+    <!-- Main Logic -->
+    <script type="module" src="/main.js"></script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
