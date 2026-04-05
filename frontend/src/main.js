@@ -1,8 +1,8 @@
 
 import './style.css';
 
-// TxDOT GPR Analytics — Main Application Logic
-// Developed by Texas Tech University
+// GPR Analytics — Main Application Logic
+// Industrial-scientific interface interactions
 
 document.addEventListener('DOMContentLoaded', () => {
     // Form Elements
@@ -21,11 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const gprInput = document.getElementById('gpr_file');
     const kmlFilename = document.getElementById('kml-filename');
     const gprFilename = document.getElementById('gpr-filename');
-
-    // Column Selection Elements
-    const columnSelectionWrapper = document.getElementById('column-selection-wrapper');
-    const columnPreviewGrid = document.getElementById('column-preview-grid');
-    const thicknessColumnInput = document.getElementById('thickness_column');
 
     // Result Elements
     const resultsSection = document.getElementById('results-section');
@@ -46,6 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Latency Display
     const latencyDisplay = document.getElementById('latency');
 
+    // Layer selection elements
+    const layerSelection = document.getElementById('layer-selection');
+    const layerGrid = document.getElementById('layer-grid');
+    const selectedColumnInput = document.getElementById('selected_column');
+
     // Initialize
     resultsSection.classList.add('hidden');
     hideResults();
@@ -56,13 +56,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // File Upload Handling
     kmlInput.addEventListener('change', (e) => handleFileSelect(e, kmlZone, kmlFilename, 'KML'));
-    gprInput.addEventListener('change', (e) => handleFileSelect(e, gprZone, gprFilename, 'OUT'));
-
-    // GPR File Special Handling: Get Previews
-    gprInput.addEventListener('change', handleGprUpload);
+    gprInput.addEventListener('change', (e) => {
+        handleFileSelect(e, gprZone, gprFilename, 'OUT');
+        if (e.target.files[0]) {
+            fetchPreview(e.target.files[0]);
+        }
+    });
 
     // Form Submission
     form.addEventListener('submit', handleSubmit);
+
+    async function fetchPreview(file) {
+        layerSelection.classList.remove('hidden');
+        layerGrid.innerHTML = `
+            <div class="loading-state" style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 0.75rem;">
+                SCANNING DATA LAYERS...
+            </div>
+        `;
+
+        try {
+            const formData = new FormData();
+            formData.append('gpr_file', file);
+
+            const response = await fetch('/preview', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Preview scan failed');
+            const data = await response.json();
+            renderLayerGrid(data.columns);
+        } catch (err) {
+            layerGrid.innerHTML = `<div class="error-text" style="grid-column: 1/-1; color: var(--signal-red);">Scan Error: ${err.message}</div>`;
+        }
+    }
+
+    function renderLayerGrid(columns) {
+        layerGrid.innerHTML = '';
+        columns.forEach(col => {
+            const card = document.createElement('div');
+            card.className = `layer-card ${col.is_empty ? 'empty' : ''} ${col.index === parseInt(selectedColumnInput.value) ? 'active' : ''}`;
+            
+            // Create SVG Sparkline
+            const sparkline = createSparkline(col.data);
+            
+            card.innerHTML = `
+                <div class="layer-info">
+                    <span class="layer-name">${col.name}</span>
+                    <span class="layer-stats">${col.mean.toFixed(2)}" avg</span>
+                </div>
+                <div class="layer-preview">${sparkline}</div>
+            `;
+
+            if (!col.is_empty) {
+                card.onclick = () => {
+                    document.querySelectorAll('.layer-card').forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+                    selectedColumnInput.value = col.index;
+                };
+            }
+
+            layerGrid.appendChild(card);
+        });
+    }
+
+    function createSparkline(points) {
+        if (!points || points.length === 0) return '';
+        const min = Math.min(...points);
+        const max = Math.max(...points);
+        const range = max - min || 1;
+        
+        const width = 200;
+        const height = 40;
+        const mappedPoints = points.map((p, i) => {
+            const x = (i / (points.length - 1)) * width;
+            const y = height - ((p - min) / range) * height;
+            return `${x},${y}`;
+        }).join(' ');
+
+        return `
+            <svg class="sparkline-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                <polyline class="sparkline-path" points="${mappedPoints}" />
+            </svg>
+        `;
+    }
 
     // Handle File Selection
     function handleFileSelect(e, zone, filenameDisplay, type) {
@@ -83,79 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // GPR Preview Logic
-    async function handleGprUpload() {
-        const file = gprInput.files[0];
-        if (!file) {
-            columnSelectionWrapper.classList.add('hidden');
-            return;
-        }
-
-        try {
-            const formData = new FormData();
-            formData.append('gpr_file', file);
-
-            const response = await fetch('/preview', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) throw new Error('Preview failed');
-
-            const data = await response.json();
-            renderColumnPreviews(data.columns);
-            columnSelectionWrapper.classList.remove('hidden');
-        } catch (err) {
-            console.error('Column preview error:', err);
-        }
-    }
-
-    function renderColumnPreviews(columns) {
-        columnPreviewGrid.innerHTML = '';
-        
-        // Convert to array of numbers for logical sorting
-        const indices = Object.keys(columns).map(Number).sort((a,b) => a-b);
-
-        indices.forEach(idx => {
-            const series = columns[idx];
-            const card = document.createElement('div');
-            card.className = 'preview-card';
-            if (idx === 6) card.classList.add('selected'); // Default column
-
-            card.innerHTML = `
-                <span class="preview-label">Value ${idx - 1}</span>
-                <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-                    <polyline fill="none" stroke="currentColor" stroke-width="2" points="${generatePoints(series)}"/>
-                </svg>
-            `;
-
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.preview-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-                thicknessColumnInput.value = idx;
-            });
-
-            columnPreviewGrid.appendChild(card);
-        });
-    }
-
-    function generatePoints(data) {
-        if (!data || data.length === 0) return "0,20 100,20";
-        const min = Math.min(...data);
-        const max = Math.max(...data);
-        const range = max - min || 1;
-        
-        return data.map((val, i) => {
-            const x = (i / (data.length - 1)) * 100;
-            const y = 35 - ((val - min) / range) * 30; // 5px padding
-            return `${x.toFixed(1)},${y.toFixed(1)}`;
-        }).join(' ');
-    }
-
     // Drag and Drop Initialization
     function initDragDrop() {
         const zones = [kmlZone, gprZone];
         const inputs = { [kmlZone.id]: kmlInput, [gprZone.id]: gprInput };
+        const displays = { [kmlZone.id]: kmlFilename, [gprZone.id]: gprFilename };
+        const types = { [kmlZone.id]: 'KML', [gprZone.id]: 'OUT' };
 
         zones.forEach(zone => {
             zone.addEventListener('dragover', (e) => {
@@ -208,17 +218,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Loading UI
         submitBtn.disabled = true;
-        btnText.textContent = 'EXECUTING ANALYTICS...';
+        btnText.textContent = 'PROCESSING DATA STREAM...';
         btnSpinner.classList.add('active');
         btnProgress.style.width = '0%';
 
         // Simulate progress
         let progress = 0;
         const progressInterval = setInterval(() => {
-            progress += Math.random() * 10;
-            if (progress > 95) progress = 95;
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
             btnProgress.style.width = `${progress}%`;
-        }, 250);
+        }, 200);
 
         try {
             const formData = new FormData(form);
@@ -254,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnText.textContent = 'INITIATE ANALYSIS';
                 btnSpinner.classList.remove('active');
                 btnProgress.style.width = '0%';
-            }, 600);
+            }, 500);
         }
     }
 
@@ -263,6 +273,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Traces
         const traces = data.data_summary.traces_parsed;
         sumTraces.textContent = traces.toLocaleString();
+
+        // Update badge based on trace count
+        if (traces > 10000) {
+            tracesBadge.textContent = 'HIGH';
+            tracesBadge.style.color = 'var(--signal-blue)';
+            tracesBadge.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+            tracesBadge.style.background = 'rgba(59, 130, 246, 0.1)';
+        }
 
         // Distance
         const totalFeet = data.data_summary.total_distance_ft;
@@ -291,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show Results with Animation
     function showResults() {
         resultsSection.classList.remove('hidden');
-        resultsSection.scrollIntoView({ behavior: 'smooth' });
 
         // Staggered reveal
         setTimeout(() => {
@@ -352,40 +369,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000);
     }
 
-    // Coordinate Tracking
+    // Coordinate Tracking (simulated for visual effect)
     function initCoordinateTracking() {
         const latDisplay = document.getElementById('lat-display');
         const lonDisplay = document.getElementById('lon-display');
 
+        // Only update when results are visible and map is loaded
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-                if (mutation.target === resultsSection && !mutation.target.classList.contains('hidden')) {
+                if (mutation.target === mapContainer && !mutation.target.classList.contains('hidden')) {
                     simulateCoordinates();
                 }
             });
         });
 
-        observer.observe(resultsSection, { attributes: true, attributeFilter: ['class'] });
+        observer.observe(mapContainer, { attributes: true, attributeFilter: ['class'] });
 
         function simulateCoordinates() {
             let lat = 29.7604;
             let lon = -95.3698;
 
             const interval = setInterval(() => {
-                if (resultsSection.classList.contains('hidden')) {
+                if (mapContainer.classList.contains('hidden')) {
                     clearInterval(interval);
                     return;
                 }
+
+                // Simulate minor coordinate drift (as if reading from GPS)
                 lat += (Math.random() - 0.5) * 0.0001;
                 lon += (Math.random() - 0.5) * 0.0001;
+
                 latDisplay.textContent = lat.toFixed(6);
                 lonDisplay.textContent = lon.toFixed(6);
             }, 1000);
         }
     }
 
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + Enter to submit
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            if (!submitBtn.disabled) {
+                form.dispatchEvent(new Event('submit'));
+            }
+        }
+    });
+
     // Console Easter Egg
-    console.log('%c TxDOT GPR ANALYTICS ', 'background: #0054A4; color: #ffffff; font-weight: bold; font-size: 20px; padding: 10px 20px;');
-    console.log('%c Developed by Texas Tech University ', 'color: #D71921; font-family: monospace; font-weight: bold;');
+    console.log('%c GPR ANALYTICS ', 'background: #f59e0b; color: #0a0a0c; font-weight: bold; font-size: 20px; padding: 10px 20px;');
+    console.log('%c Subsurface Intelligence Platform v2.4.0 ', 'color: #a1a1aa; font-family: monospace;');
 });
-;

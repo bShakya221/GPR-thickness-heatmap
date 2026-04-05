@@ -43,13 +43,58 @@ def haversine(lat1, lon1, lat2, lon2):
 def read_root():
     return {"status": "ok"}
 
+@app.post("/preview")
+async def preview_data(
+    gpr_file: UploadFile = File(...)
+):
+    try:
+        # Create a temporary file to read the data
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            shutil.copyfileobj(gpr_file.file, tmp)
+            tmp_path = tmp.name
+
+        # Read GPR outputs (sample only)
+        df = pd.read_csv(tmp_path, sep=r'\s+', skiprows=5, header=None, names=range(12))
+        os.remove(tmp_path)
+        
+        # Sort and take a dense sample for sparklines
+        df = df.sort_values(by=1).dropna(subset=[1])
+        
+        # Downsample for preview speed (max 500 points)
+        sample_size = min(len(df), 500)
+        indices = np.linspace(0, len(df) - 1, sample_size, dtype=int)
+        sample_df = df.iloc[indices]
+        
+        columns_preview = []
+        # We check columns 2 through 11
+        for col_idx in range(2, 12):
+            series = sample_df[col_idx].fillna(0).tolist()
+            # Basic validation: if all zeros or negative, we mark as likely empty
+            is_empty = all(v <= 0 for v in series)
+            
+            columns_preview.append({
+                "index": col_idx,
+                "name": f"Layer {col_idx - 1}",
+                "data": series,
+                "is_empty": is_empty,
+                "mean": float(sample_df[col_idx].mean()) if not is_empty else 0
+            })
+            
+        return {
+            "status": "success",
+            "columns": columns_preview,
+            "total_traces": len(df)
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/analyze")
 async def analyze_data(
     kml_file: UploadFile = File(...),
     gpr_file: UploadFile = File(...),
-    thickness_column: int = Form(6),
     antenna_offset: float = Form(0.0),
-    title: str = Form("HMA Thickness")
+    title: str = Form("HMA Thickness"),
+    thickness_column: int = Form(6)
 ):
     session_id = str(uuid.uuid4())
     session_dir = os.path.join(TEMP_DIR, session_id)
@@ -203,27 +248,6 @@ def get_result(session_id: str, filename: str):
     if os.path.exists(file_path):
         return FileResponse(file_path)
     return JSONResponse(status_code=404, content={"error": "File not found"})
-
-@app.post("/preview")
-async def preview_columns(gpr_file: UploadFile = File(...)):
-    try:
-        # Read limited rows for performance
-        df = pd.read_csv(gpr_file.file, sep=r'\s+', skiprows=5, header=None, nrows=2000, names=range(12))
-        df = df.sort_values(by=1).dropna(subset=[1])
-        
-        previews = {}
-        # We start from column 2 (Value 1) up to 11
-        for col_idx in range(2, 12):
-            if col_idx in df.columns:
-                # Get a sample of ~100 points
-                series = df[col_idx].dropna()
-                if not series.empty:
-                    sample_indices = np.linspace(0, len(series) - 1, 100, dtype=int)
-                    previews[col_idx] = series.iloc[sample_indices].tolist()
-        
-        return {"columns": previews}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Important: Mount static folders LAST otherwise it overrides the static API paths
 FRONTEND_DEV_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
