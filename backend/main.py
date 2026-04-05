@@ -201,13 +201,26 @@ async def analyze_data(
         # Downsample profile for frontend performance (target ~2000 points)
         step = max(1, len(plot_df) // 2000)
         profile_json = []
+        last_dmi = None
         for _, row in plot_df.iloc[::step].iterrows():
+            curr_dmi = float(row[1])
+            
+            # If gap > 100ft, insert a null point to break the continuous line in ApexCharts
+            if last_dmi is not None and (curr_dmi - last_dmi) > 100:
+                profile_json.append({
+                    "x": round(last_dmi + 1, 2),
+                    "y": None,
+                    "lat": float(row['Interp_Lat']),
+                    "lon": float(row['Interp_Lon'])
+                })
+                
             profile_json.append({
-                "x": round(float(row[1]), 2),
+                "x": round(curr_dmi, 2),
                 "y": round(float(row[thickness_column]), 3),
                 "lat": float(row['Interp_Lat']),
                 "lon": float(row['Interp_Lon'])
             })
+            last_dmi = curr_dmi
             
         # Prepare Distribution Data (Histogram Bins)
         counts, bin_edges = np.histogram(thickness_vals, bins=20)
