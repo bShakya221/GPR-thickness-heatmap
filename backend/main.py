@@ -47,6 +47,7 @@ def read_root():
 async def analyze_data(
     kml_file: UploadFile = File(...),
     gpr_file: UploadFile = File(...),
+    thickness_column: int = Form(6),
     antenna_offset: float = Form(0.0),
     title: str = Form("HMA Thickness")
 ):
@@ -100,7 +101,7 @@ async def analyze_data(
         df['Interp_Lat'] = np.interp(target_dist, kml_dist, lats)
         df['Interp_Lon'] = np.interp(target_dist, kml_dist, lons)
         
-        plot_df = df.dropna(subset=[6]).copy()
+        plot_df = df.dropna(subset=[thickness_column]).copy()
         
         # 4. Interactive Map
         center_lat = np.mean([lats[0], lats[-1]])
@@ -130,7 +131,7 @@ async def analyze_data(
         sample_stride = max(1, len(plot_df) // 3000)
         
         for idx, row in plot_df.iloc[::sample_stride].iterrows():
-            val = row[6]
+            val = row[thickness_column]
             folium.CircleMarker(
                 location=(row['Interp_Lat'], row['Interp_Lon']), radius=3.5, weight=0, fill=True,
                 fill_color=colormap(val), fill_opacity=0.85,
@@ -143,7 +144,7 @@ async def analyze_data(
         m.save(map_path)
         
         # 5. Chart rendering
-        plot_df_chart = df[[1, 6]].sort_values(by=1)
+        plot_df_chart = df[[1, thickness_column]].sort_values(by=1)
         gap_mask = plot_df_chart[1].diff() > 100
         if gap_mask.any():
             gap_indices = plot_df_chart.index[gap_mask]
@@ -155,7 +156,7 @@ async def analyze_data(
         fig, ax = plt.subplots(figsize=(10, 4.89), facecolor='#e6e6e6')
         ax.set_facecolor('#e6e6e6')
         if not plot_df_chart.empty:
-            ax.plot(plot_df_chart[1], plot_df_chart[6], '-', linewidth=1.5, alpha=0.9, color='forestgreen', label='HMA Thickness', zorder=2)
+            ax.plot(plot_df_chart[1], plot_df_chart[thickness_column], '-', linewidth=1.5, alpha=0.9, color='forestgreen', label='HMA Thickness', zorder=2)
             
         for spine in ax.spines.values():
             spine.set_visible(True)
@@ -202,6 +203,27 @@ def get_result(session_id: str, filename: str):
     if os.path.exists(file_path):
         return FileResponse(file_path)
     return JSONResponse(status_code=404, content={"error": "File not found"})
+
+@app.post("/preview")
+async def preview_columns(gpr_file: UploadFile = File(...)):
+    try:
+        # Read limited rows for performance
+        df = pd.read_csv(gpr_file.file, sep=r'\s+', skiprows=5, header=None, nrows=2000, names=range(12))
+        df = df.sort_values(by=1).dropna(subset=[1])
+        
+        previews = {}
+        # We start from column 2 (Value 1) up to 11
+        for col_idx in range(2, 12):
+            if col_idx in df.columns:
+                # Get a sample of ~100 points
+                series = df[col_idx].dropna()
+                if not series.empty:
+                    sample_indices = np.linspace(0, len(series) - 1, 100, dtype=int)
+                    previews[col_idx] = series.iloc[sample_indices].tolist()
+        
+        return {"columns": previews}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Important: Mount static folders LAST otherwise it overrides the static API paths
 FRONTEND_DEV_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
