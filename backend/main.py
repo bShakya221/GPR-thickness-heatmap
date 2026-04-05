@@ -39,7 +39,7 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.asin(math.sqrt(a))
     return R * c * 5280
 
-@app.get("/")
+@app.get("/api/health")
 def read_root():
     return {"status": "ok"}
 
