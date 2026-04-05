@@ -203,13 +203,13 @@ def get_result(session_id: str, filename: str):
         return FileResponse(file_path)
     return JSONResponse(status_code=404, content={"error": "File not found"})
 
-if __name__ == "__main__":
-    import uvicorn
-    # run specifically on port 8000
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
 # Important: Mount static folders LAST otherwise it overrides the static API paths
 FRONTEND_DEV_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.isdir(FRONTEND_DEV_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DEV_DIR, html=True), name="frontend")
+
+if __name__ == "__main__":
+    import uvicorn
+    # run specifically on port 8000
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
