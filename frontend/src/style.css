@@ -12,11 +12,16 @@
   --bg-tertiary: #2d2d2d;
   --bg-panel: #181818;
 
-  /* Accent Colors - TTU Red */
-  --amber-400: #CC0000; /* TTU Scarlet */
-  --amber-500: #A80000;
-  --amber-600: #800000;
-  --amber-glow: rgba(204, 0, 0, 0.2);
+  /* Accent Colors - Soft Red Backdrop */
+  --amber-400: #ef4444; /* Softer red for subtle gradients */
+  --amber-500: #dc2626;
+  --amber-600: #b91c1c;
+  --amber-glow: rgba(239, 68, 68, 0.15);
+
+  /* Primary Action Colors */
+  --primary-btn: #004F71; /* TxDOT Blue */
+  --primary-btn-hover: #00364d;
+  --primary-glow: rgba(0, 79, 113, 0.35);
 
   /* Signal Colors - TxDOT Blue */
   --signal-blue: #004F71; /* TxDOT Blue */
@@ -240,9 +245,10 @@ body {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--amber-400);
+  color: #ffffff; /* Bright text for contrast */
   padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--border-accent);
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 4px;
 }
 
@@ -375,7 +381,8 @@ body {
 .file-name {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--amber-400);
+  color: #ffffff; /* High contrast text */
+  font-weight: 600;
   margin-top: var(--space-xs);
   max-width: 100%;
   overflow: hidden;
@@ -501,8 +508,8 @@ body {
   position: relative;
   width: 100%;
   padding: var(--space-lg);
-  background: linear-gradient(135deg, var(--amber-500), var(--amber-600));
-  border: none;
+  background: linear-gradient(135deg, var(--primary-btn), var(--primary-btn-hover));
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   cursor: pointer;
   overflow: hidden;
@@ -510,11 +517,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #ffffff; /* Explicitly enforce bright font */
 }
 
 .execute-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px var(--amber-glow);
+  box-shadow: 0 8px 24px var(--primary-glow);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .execute-btn:active:not(:disabled) {
@@ -550,7 +559,7 @@ body {
   font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--bg-primary);
+  color: #ffffff; /* Bright font */
 }
 
 .btn-spinner {
@@ -567,7 +576,7 @@ body {
 .btn-spinner svg {
   width: 100%;
   height: 100%;
-  color: var(--bg-primary);
+  color: #ffffff;
 }
 
 @keyframes spin {
