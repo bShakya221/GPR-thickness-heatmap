@@ -208,6 +208,24 @@
             <div class="metric-value">2.4<span class="metric-unit">GHz</span></div>
             <div class="metric-secondary">Penetration: ~3.5m</div>
           </div>
+
+          <div class="metric-card highlight">
+            <div class="metric-header">
+              <span class="metric-label">AVG THICKNESS</span>
+              <span class="metric-badge green">CALC</span>
+            </div>
+            <div class="metric-value" id="stats-mean">---</div>
+            <div class="metric-secondary">Inches</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">STD DEVIATION</span>
+              <span class="metric-badge amber">VARIANCE</span>
+            </div>
+            <div class="metric-value" id="stats-std">---</div>
+            <div class="metric-secondary">Inches</div>
+          </div>
         </div>
 
         <!-- Visualization Grid -->
@@ -220,11 +238,11 @@
                 <h3>Longitudinal Distribution</h3>
               </div>
               <div class="panel-actions">
-                <button class="action-btn" title="Download">
+                <a id="download-profile" href="#" download class="action-btn" title="Download PNG">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                   </svg>
-                </button>
+                </a>
                 <button class="action-btn" title="Expand">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
@@ -254,6 +272,11 @@
                 <h3>Geospatial Telemetry</h3>
               </div>
               <div class="panel-actions">
+                <a id="download-map" href="#" download class="action-btn" title="Download HTML Map">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                </a>
                 <button class="action-btn" title="Layers">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 2 7 12 12 22 7 12 2"/>
@@ -276,6 +299,45 @@
                   <span>LON: <span id="lon-display">--.------</span></span>
                 </div>
               </div>
+            </div>
+          </div>
+          </div>
+
+          <!-- Distribution Profile -->
+          <div class="viz-panel dist-panel" id="dist-container">
+            <div class="panel-header-compact">
+              <div class="panel-title-wrap">
+                <span class="panel-dot green"></span>
+                <h3>Thickness Distribution</h3>
+              </div>
+              <div class="panel-actions">
+                <a id="download-dist" href="#" download class="action-btn" title="Download PNG">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+            <div class="chart-container">
+              <img id="result-dist" src="" alt="Thickness Distribution" class="result-image" />
+            </div>
+          </div>
+
+          <!-- Data Export -->
+          <div class="viz-panel export-panel" id="export-container">
+            <div class="panel-header-compact">
+              <div class="panel-title-wrap">
+                <span class="panel-dot blue"></span>
+                <h3>Engineering Data (Excel)</h3>
+              </div>
+            </div>
+            <div class="export-body" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; height: 100%;">
+                <p style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-tertiary); text-align: center;">Download full interpolated dataset with DMI and GPS coordinates.</p>
+                <a id="download-excel" href="#" download class="execute-btn" style="width: 200px; text-decoration: none;">
+                    <span class="btn-content">
+                        <span class="btn-text">DOWNLOAD .XLXS</span>
+                    </span>
+                </a>
             </div>
           </div>
         </div>

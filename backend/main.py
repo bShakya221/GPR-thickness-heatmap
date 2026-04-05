@@ -11,6 +11,7 @@ matplotlib.use('Agg') # important for server contexts to avoid threading issues
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from branca.element import Template, MacroElement
+import seaborn as sns
 import re
 import math
 import os
@@ -188,6 +189,31 @@ async def analyze_data(
         map_path = os.path.join(session_dir, 'map.html')
         m.save(map_path)
         
+        # 4.5 Calculate Statistics
+        thickness_vals = plot_df[thickness_column].dropna()
+        stats_mean = float(thickness_vals.mean())
+        stats_std = float(thickness_vals.std())
+        stats_min = float(thickness_vals.min())
+        stats_max = float(thickness_vals.max())
+        
+        # 4.6 Excel Export
+        excel_path = os.path.join(session_dir, 'analysis_results.xlsx')
+        export_df = plot_df[[1, 'Interp_Lat', 'Interp_Lon', thickness_column]].copy()
+        export_df.columns = ['DMI_Feet', 'Latitude', 'Longitude', 'Thickness_Inches']
+        export_df.to_excel(excel_path, index=False)
+        
+        # 4.7 Distribution Plot
+        dist_plot_path = os.path.join(session_dir, 'distribution.png')
+        plt.figure(figsize=(10, 6), facecolor='#f8f9fa')
+        sns.histplot(thickness_vals, kde=True, color='forestgreen', bins=20)
+        plt.title(f'Thickness Distribution - {title}', fontsize=14, fontweight='bold', pad=15)
+        plt.xlabel('Thickness (inches)', fontsize=12)
+        plt.ylabel('Frequency', fontsize=12)
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.tight_layout()
+        plt.savefig(dist_plot_path, dpi=300)
+        plt.close()
+        
         # 5. Chart rendering
         plot_df_chart = df[[1, thickness_column]].sort_values(by=1)
         gap_mask = plot_df_chart[1].diff() > 100
@@ -234,9 +260,17 @@ async def analyze_data(
             "session_id": session_id,
             "map_url": f"/results/{session_id}/map.html",
             "chart_url": f"/results/{session_id}/chart.png",
+            "dist_plot_url": f"/results/{session_id}/distribution.png",
+            "excel_url": f"/results/{session_id}/analysis_results.xlsx",
             "data_summary": {
                 "traces_parsed": len(plot_df),
-                "total_distance_ft": kml_total_dist
+                "total_distance_ft": kml_total_dist,
+                "stats": {
+                    "mean": round(stats_mean, 2),
+                    "std": round(stats_std, 2),
+                    "min": round(stats_min, 2),
+                    "max": round(stats_max, 2)
+                }
             }
         }
     except Exception as e:

@@ -33,6 +33,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const sumDist = document.getElementById('sum-dist');
     const sumDistFt = document.getElementById('sum-dist-ft');
     const tracesBadge = document.getElementById('traces-badge');
+    const statsMean = document.getElementById('stats-mean');
+    const statsStd = document.getElementById('stats-std');
+
+    const distContainer = document.getElementById('dist-container');
+    const exportContainer = document.getElementById('export-container');
+    const resultDist = document.getElementById('result-dist');
+
+    const downloadProfile = document.getElementById('download-profile');
+    const downloadMap = document.getElementById('download-map');
+    const downloadDist = document.getElementById('download-dist');
+    const downloadExcel = document.getElementById('download-excel');
 
     // Parameter Inputs
     const offsetInput = document.getElementById('antenna_offset');
@@ -301,9 +312,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const cacheBuster = `?t=${Date.now()}`;
         resultMap.src = data.map_url + cacheBuster;
         resultChart.src = data.chart_url + cacheBuster;
+        resultDist.src = data.dist_plot_url + cacheBuster;
+
+        // Set Statistics
+        statsMean.textContent = data.data_summary.stats.mean;
+        statsStd.textContent = data.data_summary.stats.std;
+
+        // Set Download Links
+        downloadProfile.href = data.chart_url;
+        downloadMap.href = data.map_url;
+        downloadDist.href = data.dist_plot_url;
+        downloadExcel.href = data.excel_url;
 
         // Animate value counters
         animateValue(sumTraces, 0, traces, 1000);
+        animateValue(statsMean, 0, data.data_summary.stats.mean, 1000, true);
+        animateValue(statsStd, 0, data.data_summary.stats.std, 1000, true);
     }
 
     // Show Results with Animation
@@ -325,6 +349,16 @@ document.addEventListener('DOMContentLoaded', () => {
             mapContainer.classList.remove('hidden');
             mapContainer.style.animation = 'slide-up 0.5s ease-out 0.2s both';
         }, 500);
+
+        setTimeout(() => {
+            distContainer.classList.remove('hidden');
+            distContainer.style.animation = 'slide-up 0.5s ease-out 0.3s both';
+        }, 600);
+
+        setTimeout(() => {
+            exportContainer.classList.remove('hidden');
+            exportContainer.style.animation = 'slide-up 0.5s ease-out 0.4s both';
+        }, 700);
     }
 
     // Hide Results
@@ -333,12 +367,17 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryCards.classList.add('hidden');
         chartContainer.classList.add('hidden');
         mapContainer.classList.add('hidden');
+        distContainer.classList.add('hidden');
+        exportContainer.classList.add('hidden');
     }
 
     // Animate Numeric Value
-    function animateValue(element, start, end, duration) {
+    function animateValue(element, start, end, duration, decimals = false) {
         const startTime = performance.now();
-        const formatter = new Intl.NumberFormat('en-US');
+        const formatter = new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: decimals ? 2 : 0,
+            maximumFractionDigits: decimals ? 2 : 0
+        });
 
         function update(currentTime) {
             const elapsed = currentTime - startTime;
