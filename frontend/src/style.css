@@ -832,12 +832,19 @@ body {
 }
 
 /* Chart Container */
-.chart-container {
-  position: relative;
-  flex: 1;
-  min-height: 300px;
+.chart-container.interactive {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
   background: var(--bg-primary);
+  overflow: hidden;
 }
+
+.apex-chart-element {
+  width: 100%;
+  flex: 1;
+}
+
 
 .result-image {
   width: 100%;

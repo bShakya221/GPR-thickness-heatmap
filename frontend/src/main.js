@@ -52,6 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Latency Display
     const latencyDisplay = document.getElementById('latency');
 
+    // Chart instances
+    let profileChart = null;
+    let distChart = null;
+
     // Layer selection elements
     const layerSelection = document.getElementById('layer-selection');
     const layerGrid = document.getElementById('layer-grid');
@@ -64,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initParamSync();
     startLatencySimulation();
     initCoordinateTracking();
+    initCharts();
 
     // File Upload Handling
     kmlInput.addEventListener('change', (e) => handleFileSelect(e, kmlZone, kmlFilename, 'KML'));
@@ -150,6 +155,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 <polyline class="sparkline-path" points="${mappedPoints}" />
             </svg>
         `;
+    }
+
+    function initCharts() {
+        const commonOptions = {
+            theme: { mode: 'dark' },
+            chart: {
+                foreColor: '#a1a1aa',
+                toolbar: { show: true, tools: { download: false } },
+                background: 'transparent',
+                fontFamily: 'JetBrains Mono, monospace'
+            },
+            grid: {
+                borderColor: '#27272a',
+                strokeDashArray: 4
+            },
+            colors: ['#f59e0b', '#3b82f6'],
+            stroke: { curve: 'smooth', width: 2 }
+        };
+
+        profileChart = new ApexCharts(document.querySelector("#profile-chart"), {
+            ...commonOptions,
+            series: [{ name: 'Thickness', data: [] }],
+            chart: { ...commonOptions.chart, type: 'area', height: 400,
+                events: {
+                    mouseMove: (event, chartContext, config) => {
+                        const seriesIndex = config.seriesIndex;
+                        const dataPointIndex = config.dataPointIndex;
+                        if (dataPointIndex > -1) {
+                            const point = config.config.series[0].data[dataPointIndex];
+                            if (point && point.lat) {
+                                document.getElementById('lat-display').textContent = point.lat.toFixed(6);
+                                document.getElementById('lon-display').textContent = point.lon.toFixed(6);
+                            }
+                        }
+                    }
+                }
+            },
+            xaxis: { type: 'numeric', title: { text: 'Distance (Feet)' } },
+            yaxis: { title: { text: 'Inches' }, min: 0 }
+        });
+
+        distChart = new ApexCharts(document.querySelector("#dist-chart"), {
+            ...commonOptions,
+            series: [{ name: 'Frequency', data: [] }],
+            chart: { ...commonOptions.chart, type: 'bar', height: 400 },
+            xaxis: { type: 'numeric', title: { text: 'Thickness (Inches)' } },
+            yaxis: { title: { text: 'Count' } }
+        });
+
+        profileChart.render();
+        distChart.render();
     }
 
     // Handle File Selection
@@ -311,8 +367,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load visualizations with cache buster
         const cacheBuster = `?t=${Date.now()}`;
         resultMap.src = data.map_url + cacheBuster;
-        resultChart.src = data.chart_url + cacheBuster;
-        resultDist.src = data.dist_plot_url + cacheBuster;
+        
+        // Update Interactive Charts
+        profileChart.updateSeries([{
+            name: 'Thickness',
+            data: data.chart_data.profile.map(p => ({ x: p.x, y: p.y, lat: p.lat, lon: p.lon }))
+        }]);
+
+        distChart.updateSeries([{
+            name: 'Frequency',
+            data: data.chart_data.distribution.map(p => ({ x: p.x, y: p.y }))
+        }]);
+
+        // resultChart.src = data.chart_url + cacheBuster; // Static version hidden
+        // resultDist.src = data.dist_plot_url + cacheBuster; // Static version hidden
 
         // Set Statistics
         statsMean.textContent = data.data_summary.stats.mean;

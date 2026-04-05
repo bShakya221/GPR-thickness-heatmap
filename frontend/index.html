@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- ApexCharts for Interactive Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   </head>
   <body>
     <!-- Background Grid Pattern -->
@@ -250,8 +252,8 @@
                 </button>
               </div>
             </div>
-            <div class="chart-container">
-              <img id="result-chart" src="" alt="HMA Thickness Chart" class="result-image" />
+            <div class="chart-container interactive">
+              <div id="profile-chart" class="apex-chart-element"></div>
               <div class="chart-overlay">
                 <div class="chart-ruler">
                   <span>0</span>
@@ -318,8 +320,8 @@
                 </a>
               </div>
             </div>
-            <div class="chart-container">
-              <img id="result-dist" src="" alt="Thickness Distribution" class="result-image" />
+            <div class="chart-container interactive">
+              <div id="dist-chart" class="apex-chart-element"></div>
             </div>
           </div>
 

@@ -214,6 +214,27 @@ async def analyze_data(
         plt.savefig(dist_plot_path, dpi=300)
         plt.close()
         
+        # 4.8 Prepare Frontend Plot Data (JSON)
+        # Downsample profile for frontend performance (target ~2000 points)
+        step = max(1, len(plot_df) // 2000)
+        profile_json = []
+        for _, row in plot_df.iloc[::step].iterrows():
+            profile_json.append({
+                "x": round(float(row[1]), 2),
+                "y": round(float(row[thickness_column]), 3),
+                "lat": float(row['Interp_Lat']),
+                "lon": float(row['Interp_Lon'])
+            })
+            
+        # Prepare Distribution Data (Histogram Bins)
+        counts, bin_edges = np.histogram(thickness_vals, bins=20)
+        dist_json = []
+        for i in range(len(counts)):
+            dist_json.append({
+                "x": round(float((bin_edges[i] + bin_edges[i+1]) / 2), 2),
+                "y": int(counts[i])
+            })
+        
         # 5. Chart rendering
         plot_df_chart = df[[1, thickness_column]].sort_values(by=1)
         gap_mask = plot_df_chart[1].diff() > 100
@@ -262,6 +283,10 @@ async def analyze_data(
             "chart_url": f"/results/{session_id}/chart.png",
             "dist_plot_url": f"/results/{session_id}/distribution.png",
             "excel_url": f"/results/{session_id}/analysis_results.xlsx",
+            "chart_data": {
+                "profile": profile_json,
+                "distribution": dist_json
+            },
             "data_summary": {
                 "traces_parsed": len(plot_df),
                 "total_distance_ft": kml_total_dist,
