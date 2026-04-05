@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 animations: { enabled: false }
             },
             grid: { borderColor: '#27272a', strokeDashArray: 4 },
-            colors: ['#f59e0b', '#3b82f6'],
+            colors: ['#CC0000', '#004F71'], // TTU Red, TxDOT Blue
             stroke: { curve: 'smooth', width: 2 }
         };
 
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 distChart = new ApexCharts(document.querySelector("#dist-chart"), {
                     ...commonOptions,
-                    colors: ['#22c55e'], // Signal green
+                    colors: ['#004F71'], // TxDOT Blue
                     series: [{ name: 'Frequency', data: currentChartData.distribution.map(p => ({ x: String(p.x), y: p.y })) }],
                     chart: { ...commonOptions.chart, type: 'bar', height: 350 },
                     dataLabels: { enabled: false },

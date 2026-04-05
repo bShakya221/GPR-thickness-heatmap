@@ -6,23 +6,23 @@
 
 /* CSS Variables */
 :root {
-  /* Core Colors - Industrial Dark */
-  --bg-primary: #0a0a0c;
-  --bg-secondary: #111113;
-  --bg-tertiary: #16171a;
-  --bg-panel: #131316;
+  /* Core Colors - Clean Dark */
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2d2d2d;
+  --bg-panel: #181818;
 
-  /* Accent Colors - Industrial Amber & Signal */
-  --amber-400: #f59e0b;
-  --amber-500: #d97706;
-  --amber-600: #b45309;
-  --amber-glow: rgba(245, 158, 11, 0.3);
+  /* Accent Colors - TTU Red */
+  --amber-400: #CC0000; /* TTU Scarlet */
+  --amber-500: #A80000;
+  --amber-600: #800000;
+  --amber-glow: rgba(204, 0, 0, 0.2);
 
-  /* Signal Colors */
-  --signal-blue: #3b82f6;
-  --signal-cyan: #06b6d4;
-  --signal-green: #10b981;
-  --signal-red: #ef4444;
+  /* Signal Colors - TxDOT Blue */
+  --signal-blue: #004F71; /* TxDOT Blue */
+  --signal-cyan: #00aced;
+  --signal-green: #2e7d32;
+  --signal-red: #CC0000;
 
   /* Text Colors */
   --text-primary: #fafafa;
