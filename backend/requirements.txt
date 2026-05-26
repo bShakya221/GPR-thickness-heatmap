@@ -4,5 +4,4 @@ python-multipart
 pandas
 folium
 branca
-openpyxl
-
+xlsxwriter

@@ -4,6 +4,13 @@ import './style.css';
 // GPR Analytics — Main Application Logic
 // Industrial-scientific interface interactions
 
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+
+function apiUrl(path) {
+    if (!path || /^https?:\/\//i.test(path)) return path;
+    return `${API_BASE}${path}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Form Elements
     const form = document.getElementById('upload-form');
@@ -42,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const downloadMap = document.getElementById('download-map');
     const downloadExcel = document.getElementById('download-excel');
+    const downloadProfilePng = document.getElementById('download-profile-png');
+    const downloadDistPng = document.getElementById('download-dist-png');
 
     // Chart instances
     let profileChart = null;
@@ -91,21 +100,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
             formData.append('gpr_file', file);
 
-            const response = await fetch('/preview', {
+            const response = await fetch(apiUrl('/preview'), {
                 method: 'POST',
                 body: formData
             });
 
             if (!response.ok) throw new Error('Preview scan failed');
             const data = await response.json();
-            renderLayerGrid(data.columns);
+            renderLayerGrid(data.columns, data.recommended_column);
         } catch (err) {
             layerGrid.innerHTML = `<div class="error-text" style="grid-column: 1/-1; color: var(--signal-red);">Scan Error: ${err.message}</div>`;
         }
     }
 
-    function renderLayerGrid(columns) {
+    function renderLayerGrid(columns, recommendedColumn) {
         layerGrid.innerHTML = '';
+        const fallbackColumn = columns.find(col => !col.is_empty)?.index;
+        if (recommendedColumn || fallbackColumn) {
+            selectedColumnInput.value = recommendedColumn || fallbackColumn;
+        }
+
         columns.forEach(col => {
             const card = document.createElement('div');
             card.className = `layer-card ${col.is_empty ? 'empty' : ''} ${col.index === parseInt(selectedColumnInput.value) ? 'active' : ''}`;
@@ -248,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const formData = new FormData(form);
 
-            const response = await fetch('/analyze', {
+            const response = await fetch(apiUrl('/analyze'), {
                 method: 'POST',
                 body: formData
             });
@@ -319,15 +333,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load visualizations with cache buster
         const cacheBuster = `?t=${Date.now()}`;
-        resultMap.src = data.map_url + cacheBuster;
+        const mapUrl = apiUrl(data.map_url);
+        resultMap.src = mapUrl + cacheBuster;
         
         // Set Statistics
         statsMean.textContent = data.data_summary.stats.mean;
         statsStd.textContent = data.data_summary.stats.std;
 
         // Set Download Links
-        downloadMap.href = data.map_url;
-        downloadExcel.href = data.excel_url;
+        downloadMap.href = mapUrl;
+        downloadExcel.href = apiUrl(data.excel_url);
 
         // Animate value counters
         animateValue(sumTraces, 0, traces, 1000);
@@ -343,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             theme: { mode: 'dark' },
             chart: {
                 foreColor: '#a1a1aa',
-                toolbar: { show: true, tools: { download: true, selection: true, zoom: true, pan: true } },
+                toolbar: { show: true, tools: { download: false, selection: true, zoom: true, pan: true, reset: true } },
                 background: 'transparent',
                 fontFamily: 'JetBrains Mono, monospace',
                 animations: { enabled: false }
@@ -389,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     yaxis: { title: { text: 'Inches' }, min: 0 }
                 });
                 profileChart.render();
+                setExportEnabled(downloadProfilePng, true);
             }
         }, 300);
 
@@ -416,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     plotOptions: { bar: { borderRadius: 4, columnWidth: '80%' } }
                 });
                 distChart.render();
+                setExportEnabled(downloadDistPng, true);
             }
         }, 600);
 
@@ -433,7 +450,39 @@ document.addEventListener('DOMContentLoaded', () => {
         mapContainer.classList.add('hidden');
         distContainer.classList.add('hidden');
         exportContainer.classList.add('hidden');
+        setExportEnabled(downloadProfilePng, false);
+        setExportEnabled(downloadDistPng, false);
     }
+
+    function setExportEnabled(button, enabled) {
+        if (!button) return;
+        button.disabled = !enabled;
+    }
+
+    async function downloadChartPng(chart, filename) {
+        if (!chart) return;
+        try {
+            const { imgURI } = await chart.dataURI({ scale: 3 });
+            const link = document.createElement('a');
+            link.href = imgURI;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Chart export failed:', error);
+            errorText.textContent = `Chart export failed: ${error.message}`;
+            errorMessage.classList.remove('hidden');
+        }
+    }
+
+    downloadProfilePng?.addEventListener('click', () => {
+        downloadChartPng(profileChart, 'gpr-longitudinal-profile-high-res.png');
+    });
+
+    downloadDistPng?.addEventListener('click', () => {
+        downloadChartPng(distChart, 'gpr-thickness-distribution-high-res.png');
+    });
 
     // Animate Numeric Value
     function animateValue(element, start, end, duration, decimals = false) {
@@ -465,6 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Latency Simulation
     function startLatencySimulation() {
+        if (!latencyDisplay) return;
+
         setInterval(() => {
             const baseLatency = 12;
             const variance = Math.floor(Math.random() * 8) - 4;

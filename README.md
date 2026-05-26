@@ -7,26 +7,43 @@ This application accepts GPR traces (`.OUT`) mapped to High-Resolution GPS route
 ## Architecture Structure
 The application has been unified to run smoothly as a standalone Web Service bypassing rigorous corporate IT firewalls (100% ephemeral processing, zero persistent storage).
 
-- **Frontend:** Vanilla JS powered by Vite, utilizing **Tailwind CSS v3** for a dynamic glassmorphic interface.
-- **Backend:** **Python/FastAPI** orchestrating Pandas, Folium, and Matplotlib logic to pipe visualizations straight back to the client.
+- **Frontend:** Vanilla JS powered by Vite, using the custom stylesheet in `frontend/src/style.css`.
+- **Backend:** **Python/FastAPI** orchestrating Pandas, Folium, Branca, and Excel export logic to pipe visualizations straight back to the client.
+- **Excel export:** `analysis_results.xlsx` includes the full interpolated data plus native Excel chart sheets for the longitudinal profile and thickness distribution.
 
 ## Operating Environments
 
 ### Local Development Usage
-To test updates locally:
-1. Initialize the UI builder:
+For the closest match to production, build the frontend and let FastAPI serve both the UI and API from one origin:
+
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run build
 ```
 
-2. Spin up the API in a different terminal:
 ```bash
 cd backend
 pip install -r requirements.txt
-python main.py
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
+
+Open `http://127.0.0.1:8000`.
+
+For Vite hot reload, run the backend separately and point the frontend at it:
+
+```bash
+cd backend
+python -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+```bash
+cd frontend
+$env:VITE_API_BASE="http://127.0.0.1:8000"
+npm run dev
+```
+
+If Windows blocks port `8000`, choose another port for Uvicorn and use the same value in `VITE_API_BASE`.
 
 ### Production Usage (Render / Cloud Deployment)
 This repository is pre-configured to deploy dynamically as a centralized Web Service.

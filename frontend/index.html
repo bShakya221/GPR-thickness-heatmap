@@ -58,7 +58,9 @@
               <div class="upload-content">
                 <div class="upload-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 0 002-2v-2"/>
+                    <path d="M12 3v12"/>
+                    <path d="m8 11 4 4 4-4"/>
+                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
                   </svg>
                 </div>
                 <span class="upload-label">Path (KMZ/KML)</span>
@@ -226,10 +228,11 @@
                 <h3>Longitudinal Distribution</h3>
               </div>
               <div class="panel-actions">
-
-                <button class="action-btn" title="Expand">
+                <button type="button" class="action-btn" id="download-profile-png" title="Download high-resolution PNG" disabled>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                    <path d="M12 3v12"/>
+                    <path d="m8 11 4 4 4-4"/>
+                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
                   </svg>
                 </button>
               </div>
@@ -258,25 +261,15 @@
               <div class="panel-actions">
                 <a id="download-map" href="#" download class="action-btn" title="Download HTML Map">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    <path d="M12 3v12"/>
+                    <path d="m8 11 4 4 4-4"/>
+                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
                   </svg>
                 </a>
-                <button class="action-btn" title="Layers">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                    <polyline points="2 17 12 22 22 17"/>
-                    <polyline points="2 12 12 17 22 12"/>
-                  </svg>
-                </button>
-                <button class="action-btn" title="Fullscreen">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-                  </svg>
-                </button>
               </div>
             </div>
             <div class="map-wrapper">
-              <iframe id="result-map" src="" class="result-map" sandbox="allow-scripts allow-same-origin"></iframe>
+              <iframe id="result-map" src="" class="result-map" sandbox="allow-scripts"></iframe>
               <div class="map-overlay">
                 <div class="coords-display">
                   <span>LAT: <span id="lat-display">--.------</span></span>
@@ -295,7 +288,13 @@
                 <h3>Thickness Distribution</h3>
               </div>
               <div class="panel-actions">
-
+                <button type="button" class="action-btn" id="download-dist-png" title="Download high-resolution PNG" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 3v12"/>
+                    <path d="m8 11 4 4 4-4"/>
+                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+                  </svg>
+                </button>
               </div>
             </div>
             <div class="chart-container interactive">
@@ -312,10 +311,10 @@
               </div>
             </div>
             <div class="export-body" style="padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; height: 100%;">
-                <p style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-tertiary); text-align: center;">Download full interpolated dataset with DMI and GPS coordinates.</p>
+                <p style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-tertiary); text-align: center;">Download full interpolated dataset with native Excel chart sheets.</p>
                 <a id="download-excel" href="#" download class="execute-btn" style="width: 200px; text-decoration: none;">
                     <span class="btn-content">
-                        <span class="btn-text">DOWNLOAD .XLXS</span>
+                        <span class="btn-text">DOWNLOAD REPORT</span>
                     </span>
                 </a>
             </div>

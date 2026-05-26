@@ -810,6 +810,11 @@ body {
   box-shadow: 0 0 8px var(--amber-400);
 }
 
+.panel-dot.green {
+  background: var(--signal-green);
+  box-shadow: 0 0 8px var(--signal-green);
+}
+
 .panel-actions {
   display: flex;
   gap: var(--space-xs);
@@ -833,6 +838,17 @@ body {
   border-color: var(--text-secondary);
   color: var(--text-primary);
   background: var(--bg-tertiary);
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-btn:disabled:hover {
+  border-color: var(--border-color);
+  color: var(--text-tertiary);
+  background: transparent;
 }
 
 .action-btn svg {
