@@ -5,11 +5,22 @@ import './style.css';
 // Industrial-scientific interface interactions
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const THEME_STORAGE_KEY = 'gpr-theme';
 
 function apiUrl(path) {
     if (!path || /^https?:\/\//i.test(path)) return path;
     return `${API_BASE}${path}`;
 }
+
+function getStoredTheme() {
+    try {
+        return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+    } catch {
+        return 'dark';
+    }
+}
+
+document.documentElement.dataset.theme = getStoredTheme();
 
 document.addEventListener('DOMContentLoaded', () => {
     // Form Elements
@@ -51,6 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadExcel = document.getElementById('download-excel');
     const downloadProfilePng = document.getElementById('download-profile-png');
     const downloadDistPng = document.getElementById('download-dist-png');
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeToggleLabel = document.getElementById('theme-toggle-label');
 
     // Chart instances
     let profileChart = null;
@@ -71,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     resultsSection.classList.add('hidden');
     hideResults();
+    initThemeToggle();
     initDragDrop();
     initParamSync();
     startLatencySimulation();
@@ -354,19 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showResults() {
         resultsSection.classList.remove('hidden');
 
-        const commonOptions = {
-            theme: { mode: 'dark' },
-            chart: {
-                foreColor: '#a1a1aa',
-                toolbar: { show: true, tools: { download: false, selection: true, zoom: true, pan: true, reset: true } },
-                background: 'transparent',
-                fontFamily: 'JetBrains Mono, monospace',
-                animations: { enabled: false }
-            },
-            grid: { borderColor: '#27272a', strokeDashArray: 4 },
-            colors: ['#CC0000', '#004F71'], // TTU Red, TxDOT Blue
-            stroke: { curve: 'smooth', width: 2 }
-        };
+        const commonOptions = chartBaseOptions();
 
         // Staggered reveal
         setTimeout(() => {
@@ -423,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 distChart = new ApexCharts(document.querySelector("#dist-chart"), {
                     ...commonOptions,
-                    colors: ['#004F71'], // TxDOT Blue
+                    colors: [cssVar('--signal-blue')],
                     series: [{ name: 'Frequency', data: currentChartData.distribution.map(p => ({ x: String(p.x), y: p.y })) }],
                     chart: { ...commonOptions.chart, type: 'bar', height: 350 },
                     dataLabels: { enabled: false },
@@ -457,6 +459,76 @@ document.addEventListener('DOMContentLoaded', () => {
     function setExportEnabled(button, enabled) {
         if (!button) return;
         button.disabled = !enabled;
+    }
+
+    function initThemeToggle() {
+        syncThemeToggle();
+        themeToggle?.addEventListener('click', () => {
+            setTheme(activeTheme() === 'light' ? 'dark' : 'light');
+        });
+    }
+
+    function activeTheme() {
+        return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+    }
+
+    function setTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch {
+            // Theme persistence is optional when storage is unavailable.
+        }
+        syncThemeToggle();
+        updateMountedChartTheme();
+    }
+
+    function syncThemeToggle() {
+        if (!themeToggle || !themeToggleLabel) return;
+        const isLight = activeTheme() === 'light';
+        themeToggle.setAttribute('aria-pressed', String(isLight));
+        themeToggle.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+        themeToggleLabel.textContent = isLight ? 'LIGHT' : 'DARK';
+    }
+
+    function cssVar(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function chartBaseOptions() {
+        return {
+            theme: { mode: activeTheme() },
+            chart: {
+                foreColor: cssVar('--chart-fore'),
+                toolbar: { show: true, tools: { download: false, selection: true, zoom: true, pan: true, reset: true } },
+                background: 'transparent',
+                fontFamily: 'JetBrains Mono, monospace',
+                animations: { enabled: false }
+            },
+            grid: { borderColor: cssVar('--chart-grid'), strokeDashArray: 4 },
+            colors: [cssVar('--signal-red'), cssVar('--signal-blue')],
+            stroke: { curve: 'smooth', width: 2 }
+        };
+    }
+
+    function updateMountedChartTheme() {
+        const commonOptions = chartBaseOptions();
+        if (profileChart) {
+            profileChart.updateOptions({
+                theme: commonOptions.theme,
+                chart: { foreColor: commonOptions.chart.foreColor, background: commonOptions.chart.background },
+                grid: commonOptions.grid,
+                colors: commonOptions.colors
+            });
+        }
+        if (distChart) {
+            distChart.updateOptions({
+                theme: commonOptions.theme,
+                chart: { foreColor: commonOptions.chart.foreColor, background: commonOptions.chart.background },
+                grid: commonOptions.grid,
+                colors: [cssVar('--signal-blue')]
+            });
+        }
     }
 
     async function downloadChartPng(chart, filename) {

@@ -1,0 +1,51 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: gpr-thickness-map
+  REGION: us-central1
+  SERVICE: gpr-thickness-map
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy source to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          region: ${{ env.REGION }}
+          service: ${{ env.SERVICE }}
+          source: .
+          flags: >-
+            --memory=1Gi
+            --cpu=1
+            --concurrency=2
+            --max-instances=20
+            --min-instances=0
+            --timeout=900
+
+      - name: Smoke test health endpoint
+        run: curl --fail --show-error --silent "${{ steps.deploy.outputs.url }}/api/health"

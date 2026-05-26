@@ -45,13 +45,28 @@ npm run dev
 
 If Windows blocks port `8000`, choose another port for Uvicorn and use the same value in `VITE_API_BASE`.
 
-### Production Usage (Render / Cloud Deployment)
-This repository is pre-configured to deploy dynamically as a centralized Web Service.
+### Production Usage (Google Cloud Run)
+Deploy from the `gpr_web_tool` directory so Cloud Build only uploads the app, not the raw project data files in the parent folder.
 
-**Build Pipeline:** The root `build.sh` will seamlessly transpile the Tailwind static assets into `frontend/dist/` and establish the python environment automatically.
-
-**Engine Commands:** Fast API automatically intercepts routing dynamically. Use standard Uvicorn commands.
 ```bash
-./build.sh
-cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+gcloud run deploy gpr-thickness-map \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 1Gi \
+  --cpu 1 \
+  --concurrency 2 \
+  --max-instances 20 \
+  --timeout 900
 ```
+
+For the lowest fixed cost, leave minimum instances at the Cloud Run default of `0`. For lower cold-start lag during client use, set one warm instance:
+
+```bash
+gcloud run services update gpr-thickness-map \
+  --region us-central1 \
+  --min-instances 1
+```
+
+### Automatic GitHub Deploys
+Commits pushed to `main` can deploy automatically through GitHub Actions. See `docs/cloud-run-cicd.md` for the one-time Google Cloud and GitHub setup.
