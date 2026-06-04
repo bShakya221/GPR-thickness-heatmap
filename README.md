@@ -1,4 +1,4 @@
-# Nexus GPR Intelligence
+# GPR-thickness-heatmap
 
 An interactive, serverless-ready web application for analyzing Ground Penetrating Radar (GPR) pavement thickness telemetry against physical geolocational sequences.
 
